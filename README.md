@@ -14,8 +14,8 @@ This repository contains a Streamlit-based application for forecasting stock vol
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/stock-volatility-forecasting.git
-   cd stock-volatility-forecasting
+   git clone https://github.com/Dhruv-Sharma01/volatalityapp_nse_20.git
+   cd volatalityapp_nse_20
    ```
 
 2. **Install Dependencies**:
