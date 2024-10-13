@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 from arch import arch_model
 import matplotlib.pyplot as plt
-import io
 
 # Define the list of stock tickers
 tickers = [
@@ -54,13 +53,25 @@ actual_weekly_volatility = actual_daily_returns.resample('W').std()
 combined_volatility = pd.concat([weekly_volatility, actual_weekly_volatility])
 
 # Function to forecast volatility using GARCH in a rolling window manner
-def rolling_forecast_volatility(volatility_series, forecast_start, forecast_end, actual_volatility_series):
+def rolling_forecast_volatility(volatility_series, forecast_start, forecast_end):
     forecast_dates = pd.date_range(start=forecast_start, end=forecast_end, freq='W')
     forecasts = []
     
+    # Ensure the index of the volatility series is timezone-aware
+    if volatility_series.index.tz is None:
+        volatility_series.index = volatility_series.index.tz_localize('UTC')
+
     for date in forecast_dates:
+        # Ensure the forecast date is timezone-aware
+        if date.tz is None:
+            date = date.tz_localize('UTC')
+        
         # Select data up to the current date
         current_data = volatility_series.loc[:date].dropna()
+        
+        if len(current_data) < 1:
+            forecasts.append(np.nan)
+            continue
         
         # Rescale the data
         rescaled_data = 100 * current_data
@@ -90,14 +101,18 @@ if selected_ticker:
 
     # Forecast volatility
     volatility_series = combined_volatility[selected_ticker]
-    actual_volatility_series = actual_weekly_volatility[selected_ticker]
-    forecasted_volatility = rolling_forecast_volatility(volatility_series, forecast_start_date, forecast_end_date, actual_volatility_series)
+    forecasted_volatility = rolling_forecast_volatility(volatility_series, forecast_start_date, forecast_end_date)
     
     # Plot the results
     fig, ax = plt.subplots(figsize=(14, 7))
     ax.plot(volatility_series.index, volatility_series, label='Historical Volatility', color='blue')
     ax.plot(forecasted_volatility['Date'], forecasted_volatility['Forecasted Volatility'], label='Forecasted Volatility', color='red')
-    ax.plot(actual_volatility_series.index, actual_volatility_series, label='Actual Volatility', color='gray', linestyle='--')
+    
+    # If actual volatility series exists, plot it
+    if selected_ticker in actual_weekly_volatility:
+        ax.plot(actual_weekly_volatility.index, actual_weekly_volatility[selected_ticker], 
+                label='Actual Volatility', color='gray', linestyle='--')
+    
     ax.set_title(f'Weekly Volatility Forecast for {selected_ticker}')
     ax.set_xlabel('Date')
     ax.set_ylabel('Volatility')
